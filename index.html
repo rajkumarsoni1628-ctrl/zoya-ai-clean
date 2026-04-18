@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zoya AI</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#0a0a0f;
+color:white;
+overflow:hidden;
+}
+
+/* SPLASH */
+#splash{
+position:fixed;
+inset:0;
+background:radial-gradient(circle at top,#1a1a2e,#0a0a0f);
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+z-index:999;
+animation:fadeOut 2.5s ease forwards;
+animation-delay:2.5s;
+}
+
+#splash h1{
+font-size:42px;
+background:linear-gradient(90deg,#ff4d8d,#a855f7);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+animation:zoom 1.5s ease;
+}
+
+#splash p{color:#aaa;margin-top:6px;font-size:14px;}
+
+@keyframes zoom{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+@keyframes fadeOut{to{opacity:0;visibility:hidden;}}
+
+/* CHAT */
+#app{display:flex;flex-direction:column;height:100vh;}
+
+header{
+padding:12px;
+background:#12121a;
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-bottom:1px solid #333;
+}
+
+#mood{font-size:12px;color:#aaa;}
+
+#chat{
+flex:1;
+overflow:auto;
+padding:10px;
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+.msg{
+padding:10px 14px;
+border-radius:10px;
+max-width:75%;
+white-space:pre-wrap;
+}
+
+.user{background:#1f1f2e;align-self:flex-end;}
+.ai{background:#12121a;border:1px solid #333;align-self:flex-start;}
+
+.input{
+display:flex;
+padding:10px;
+background:#12121a;
+border-top:1px solid #333;
+}
+
+textarea{
+flex:1;
+padding:10px;
+border:none;
+border-radius:10px;
+outline:none;
+resize:none;
+}
+
+button{
+margin-left:8px;
+padding:10px 14px;
+border:none;
+border-radius:10px;
+background:linear-gradient(135deg,#ff4d8d,#a855f7);
+color:white;
+cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div id="splash">
+<h1>ZOYA.AI</h1>
+<p>Made by Raj 💖</p>
+</div>
+
+<div id="app">
+
+<header>
+<div>🤖 Zoya AI<br><span id="mood">Mood: Normal</span></div>
+<button onclick="clearChat()">Clear</button>
+</header>
+
+<div id="chat"></div>
+
+<div class="input">
+<textarea id="input" placeholder="Ask something..."></textarea>
+<button onclick="send()">Send</button>
+</div>
+
+</div>
+
+<script>
+let chat=document.getElementById("chat");
+let input=document.getElementById("input");
+
+let messages=[];
+let mood="Normal 😐";
+
+function setMood(m){
+mood=m;
+document.getElementById("mood").innerText="Mood: "+m;
+}
+
+function add(text,type){
+let div=document.createElement("div");
+div.className="msg "+type;
+div.innerText=text;
+chat.appendChild(div);
+chat.scrollTop=chat.scrollHeight;
+}
+
+async function send(){
+
+let text=input.value.trim();
+if(!text) return;
+
+add(text,"user");
+messages.push({role:"user",content:text});
+input.value="";
+
+/* CUSTOM REPLIES */
+let t=text.toLowerCase();
+
+if(t.includes("who made you") || t.includes("kisne banaya")){
+add("Mujhe Raj ne banaya hai 💖","ai"); return;
+}
+
+if(t.includes("your name")){
+add("Mera naam Zoya hai 🤖","ai"); return;
+}
+
+if(t==="activate mood"){
+setMood("Fun 😂");
+add("Fun mode ON 😎","ai"); return;
+}
+
+/* LOADING */
+let typing=document.createElement("div");
+typing.className="msg ai";
+typing.innerText="Typing...";
+chat.appendChild(typing);
+
+try{
+
+const res = await fetch("/api/chat", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    messages: [
+      {
+        role: "system",
+        content: `You are Zoya AI. Creator is Raj. Mood: ${mood}`
+      },
+      ...messages
+    ]
+  })
+});
+
+const data = await res.json();
+typing.remove();
+
+let reply = data.reply || "No response";
+
+add(reply,"ai");
+messages.push({role:"assistant",content:reply});
+
+}catch(err){
+typing.remove();
+add("Network/API Error ❌","ai");
+}
+}
+
+function clearChat(){
+chat.innerHTML="";
+messages=[];
+}
+
+input.addEventListener("keydown",(e)=>{
+if(e.key==="Enter" && !e.shiftKey){
+e.preventDefault();
+send();
+}
+});
+</script>
+
+</body>
+  </html>
